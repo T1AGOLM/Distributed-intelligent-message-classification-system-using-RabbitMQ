@@ -176,20 +176,6 @@ Generator ──► Topic Exchange ──┬──► review.queue   ──► C
 
 ---
 
-## 🎬 Demonstration
-
-The execution demo covers:
-
-1. Continuous generation of messages (≥ 5 msg/s).
-2. Correct routing of messages through the Topic Exchange.
-3. Classification performed by both embedded AIs.
-4. Queue growth visible in the RabbitMQ management UI.
-5. Error handling through the Dead Letter Queue.
-
-Evidence of the execution (screenshots of the RabbitMQ UI and a ~5-minute demo video) is available in the [`docs/`](docs/) folder.
-
----
-
 ## 📄 License
 
 This project is licensed under the terms of the [LICENSE](LICENSE) file.
