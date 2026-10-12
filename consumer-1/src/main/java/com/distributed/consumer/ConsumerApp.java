@@ -14,14 +14,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Consumer 1 — main entry point (task 5: routing verification base).
+ * Consumer 1 — main entry point (task 6: sentiment analysis with Smile).
  *
- * <p>Consumes from {@code review.queue} and prints every received message to
- * the console. Messages whose {@code type} is not a product review are flagged
- * as a routing error, so this console doubles as end-to-end evidence that the
- * Topic Exchange routes {@code review.product} here and nothing else.</p>
- *
- * <p>The AI classification (task 6) plugs into {@link #handle(Message)}.</p>
+ * <p>Consumes from {@code review.queue}, classifies every product review as
+ * {@code positive}, {@code negative} or {@code neutral} with the embedded
+ * Smile model ({@link SentimentClassifier}) and prints the result to the
+ * console. Messages whose {@code type} is not a product review are flagged as
+ * a routing error.</p>
  */
 public final class ConsumerApp {
 
@@ -38,13 +37,22 @@ public final class ConsumerApp {
         ObjectMapper mapper = new ObjectMapper();
         AtomicLong received = new AtomicLong();
 
+        // Train the embedded AI once, before consuming.
+        final SentimentClassifier classifier;
+        try {
+            classifier = SentimentClassifier.train();
+        } catch (Exception e) {
+            log.error("Could not train the sentiment model: {}", e.getMessage(), e);
+            return;
+        }
+
         log.info("Consumer 1 starting — queue={} dlq={} at {}:{}",
                 config.queue(), config.dlq(), config.host(), config.port());
 
         CountDownLatch forever = new CountDownLatch(1);
         while (!forever.await(RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS)) {
             try {
-                consumeLoop(config, mapper, received);
+                consumeLoop(config, mapper, received, classifier);
             } catch (Exception e) {
                 log.error("Connection/consumption failed: {} — retrying in {} ms",
                         e.getMessage(), RECONNECT_DELAY_MS);
@@ -53,7 +61,7 @@ public final class ConsumerApp {
     }
 
     private static void consumeLoop(ConsumerConfig config, ObjectMapper mapper,
-                                    AtomicLong received) throws Exception {
+                                    AtomicLong received, SentimentClassifier classifier) throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(config.host());
         factory.setPort(config.port());
@@ -78,7 +86,7 @@ public final class ConsumerApp {
             DeliverCallback callback = (tag, delivery) -> {
                 try {
                     Message message = mapper.readValue(delivery.getBody(), Message.class);
-                    handle(message, config.queue(), received);
+                    handle(message, config.queue(), received, classifier);
                 } catch (Exception e) {
                     log.error("Failed to process message: {}", e.getMessage());
                 }
@@ -104,14 +112,16 @@ public final class ConsumerApp {
         }
     }
 
-    private static void handle(Message message, String queue, AtomicLong received) {
+    private static void handle(Message message, String queue, AtomicLong received,
+                               SentimentClassifier classifier) {
         received.incrementAndGet();
         if (!EXPECTED_TYPE.equals(message.type())) {
             log.error("⚠ ROUTING ERROR — queue '{}' received unexpected type '{}': {}",
                     queue, message.type(), message.content());
             return;
         }
-        log.info("[{}] received id={} type={} content=\"{}\"",
-                queue, message.id(), message.type(), message.content());
+        String sentiment = classifier.classify(message.content());
+        log.info("[{}] received id={} type={} sentiment={} content=\"{}\"",
+                queue, message.id(), message.type(), sentiment, message.content());
     }
 }

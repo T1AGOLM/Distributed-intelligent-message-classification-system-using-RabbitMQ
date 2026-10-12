@@ -1,0 +1,46 @@
+# Labeled product-review corpus used to train the embedded Smile model.
+# Format: label|text   with label in {positive, negative, neutral}.
+# The vocabulary is learned from this file only; unseen words at runtime are
+# ignored by the vectorizer (standard bag-of-words pipeline).
+
+# --- positive ---
+positive|Absolutely loved this product, best purchase I have ever made
+positive|Amazing battery life and the build quality feels premium
+positive|Excellent value for money, I would definitely recommend it to friends
+positive|Best purchase all year, the quality is premium and durable
+positive|Great product, works perfectly out of the box
+positive|Wonderful experience, I am very happy with this item
+positive|Impressed by the performance, this device exceeds my expectations
+positive|Five stars, superb quality and really fast delivery
+positive|Very satisfied customer, everything works great
+positive|Fantastic item, the best thing I bought this year
+positive|Fast shipping, lovely design and my family loves it
+positive|Reliable and well made, worth every cent paid
+
+# --- negative ---
+negative|Terrible quality, it broke after two days of normal use
+negative|Very disappointed, the item stopped working within a week
+negative|Worst customer experience I have ever had with an online store
+negative|Arrived damaged and unusable, a total waste of money
+negative|Awful product, the screen cracked immediately and support ignored me
+negative|Do not buy this, the materials are cheap and the finish is horrible
+negative|Completely useless item, it failed on the very first day
+negative|Slow shipping and damaged packaging, I am not impressed at all
+negative|Regret this purchase, the worst quality I have seen
+negative|Frustrating and unreliable, it keeps breaking down
+negative|Horrible, the battery caught fire after one month
+negative|Unhappy buyer, it does not work as advertised and returns were denied
+
+# --- neutral ---
+neutral|Decent item for the price, nothing special but it does the job
+neutral|Average product, it does the basic tasks as described
+neutral|The design could be better but overall it is acceptable
+neutral|Standard item, neither good nor bad, just fine
+neutral|Arrived as expected, nothing remarkable to mention
+neutral|Works as described in the manual, fair enough for the cost
+neutral|Some features are good, others could be improved
+neutral|Mediocre overall, it met the minimum requirements
+neutral|It is fine for everyday use, though nothing special
+neutral|Mixed feelings, it has pros and cons in equal measure
+neutral|So so product, I have no strong opinion either way
+neutral|Packaging was plain and the item is ordinary, it serves its purpose
