@@ -1,0 +1,114 @@
+{
+  "rabbit_version": "3.13",
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "users": [
+    {
+      "name": "guest",
+      "password": "guest",
+      "tags": "administrator"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "messages.topic",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "messages.dlx",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "review.queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "messages.dlx",
+        "x-dead-letter-routing-key": "review.dlq"
+      }
+    },
+    {
+      "name": "support.queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "messages.dlx",
+        "x-dead-letter-routing-key": "support.dlq"
+      }
+    },
+    {
+      "name": "review.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "support.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "messages.topic",
+      "vhost": "/",
+      "destination": "review.queue",
+      "destination_type": "queue",
+      "routing_key": "review.product",
+      "arguments": {}
+    },
+    {
+      "source": "messages.topic",
+      "vhost": "/",
+      "destination": "support.queue",
+      "destination_type": "queue",
+      "routing_key": "support.request",
+      "arguments": {}
+    },
+    {
+      "source": "messages.dlx",
+      "vhost": "/",
+      "destination": "review.dlq",
+      "destination_type": "queue",
+      "routing_key": "review.dlq",
+      "arguments": {}
+    },
+    {
+      "source": "messages.dlx",
+      "vhost": "/",
+      "destination": "support.dlq",
+      "destination_type": "queue",
+      "routing_key": "support.dlq",
+      "arguments": {}
+    }
+  ]
+}
