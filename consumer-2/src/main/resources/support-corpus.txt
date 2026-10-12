@@ -1,0 +1,45 @@
+# Labeled support-request corpus used to train the embedded Smile model.
+# Format: label|text   with label in {access_problem, connection_problem,
+# performance_problem}. The vocabulary is learned from this file only.
+
+# --- access_problem (login / credentials / permissions) ---
+access_problem|I cannot sign in to my account, it says the credentials are invalid
+access_problem|The login page keeps rejecting my password even after a reset
+access_problem|Access denied error when trying to open the restricted dashboard
+access_problem|Sign in fails with an authentication error and my account is locked
+access_problem|The system says permission denied when I open my own profile
+access_problem|My username and password are not accepted on the sign-in screen
+access_problem|The account logs me out immediately after every authentication
+access_problem|The two-factor code is rejected each time I enter it
+access_problem|Forbidden message after login, I cannot access the private portal
+access_problem|Password recovery fails and the reset link says user not found
+access_problem|My credentials stopped working and the account remains blocked
+access_problem|The app refuses to authenticate and shows an unauthorized error
+
+# --- connection_problem (network / VPN / timeouts) ---
+connection_problem|I cannot connect to the VPN, the connection drops right away
+connection_problem|Connection lost every few minutes, the network shows no internet
+connection_problem|Wi-Fi keeps disconnecting so I cannot reach any server
+connection_problem|Every request fails with a connection timeout error
+connection_problem|The network keeps dropping packets and the link is unstable
+connection_problem|Cannot reach the database, the socket connection is refused
+connection_problem|The internet is intermittent and the wireless link resets often
+connection_problem|The router loses signal and the cloud connection fails
+connection_problem|DNS lookup fails so no connection to the remote site is possible
+connection_problem|Timeout while connecting, the host is unreachable
+connection_problem|The remote tunnel fails to establish and keeps dropping
+connection_problem|Connection to the online service is refused and resets constantly
+
+# --- performance_problem (slow / frozen / overloaded) ---
+performance_problem|Starting the program takes several minutes and every page loads slowly
+performance_problem|The terrible performance makes each screen take ages to respond
+performance_problem|The system froze completely and CPU usage is at 100 percent
+performance_problem|Pages are extremely slow and the interface lags on every click
+performance_problem|The report takes forever to generate and the server is slow
+performance_problem|High memory usage makes everything crawl and stay unresponsive
+performance_problem|Everything is sluggish since the update, response times are awful
+performance_problem|The dashboard buffers constantly and rendering takes seconds
+performance_problem|It runs very slow and hangs when processing large data sets
+performance_problem|A simple page consumes all CPU and the app becomes sluggish
+performance_problem|Response time degraded dramatically under a normal workload
+performance_problem|The service is overloaded and requests queue for many seconds

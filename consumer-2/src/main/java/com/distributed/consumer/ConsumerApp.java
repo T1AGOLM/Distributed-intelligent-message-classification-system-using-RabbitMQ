@@ -14,14 +14,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Consumer 2 — main entry point (task 5: routing verification base).
+ * Consumer 2 — main entry point (task 7: support request classification with
+ * Smile).
  *
- * <p>Consumes from {@code support.queue} and prints every received message to
- * the console. Messages whose {@code type} is not a support request are flagged
- * as a routing error, so this console doubles as end-to-end evidence that the
- * Topic Exchange routes {@code support.request} here and nothing else.</p>
- *
- * <p>The AI classification (task 7) plugs into {@link #handle(Message)}.</p>
+ * <p>Consumes from {@code support.queue}, classifies every support request as
+ * {@code access_problem}, {@code performance_problem} or
+ * {@code connection_problem} with the embedded Smile model
+ * ({@link SupportRequestClassifier}) and prints the result to the console.
+ * Messages whose {@code type} is not a support request are flagged as a
+ * routing error.</p>
  */
 public final class ConsumerApp {
 
@@ -38,13 +39,22 @@ public final class ConsumerApp {
         ObjectMapper mapper = new ObjectMapper();
         AtomicLong received = new AtomicLong();
 
+        // Train the embedded AI once, before consuming.
+        final SupportRequestClassifier classifier;
+        try {
+            classifier = SupportRequestClassifier.train();
+        } catch (Exception e) {
+            log.error("Could not train the support classifier: {}", e.getMessage(), e);
+            return;
+        }
+
         log.info("Consumer 2 starting — queue={} dlq={} at {}:{}",
                 config.queue(), config.dlq(), config.host(), config.port());
 
         CountDownLatch forever = new CountDownLatch(1);
         while (!forever.await(RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS)) {
             try {
-                consumeLoop(config, mapper, received);
+                consumeLoop(config, mapper, received, classifier);
             } catch (Exception e) {
                 log.error("Connection/consumption failed: {} — retrying in {} ms",
                         e.getMessage(), RECONNECT_DELAY_MS);
@@ -53,7 +63,7 @@ public final class ConsumerApp {
     }
 
     private static void consumeLoop(ConsumerConfig config, ObjectMapper mapper,
-                                    AtomicLong received) throws Exception {
+                                    AtomicLong received, SupportRequestClassifier classifier) throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(config.host());
         factory.setPort(config.port());
@@ -78,7 +88,7 @@ public final class ConsumerApp {
             DeliverCallback callback = (tag, delivery) -> {
                 try {
                     Message message = mapper.readValue(delivery.getBody(), Message.class);
-                    handle(message, config.queue(), received);
+                    handle(message, config.queue(), received, classifier);
                 } catch (Exception e) {
                     log.error("Failed to process message: {}", e.getMessage());
                 }
@@ -104,14 +114,16 @@ public final class ConsumerApp {
         }
     }
 
-    private static void handle(Message message, String queue, AtomicLong received) {
+    private static void handle(Message message, String queue, AtomicLong received,
+                               SupportRequestClassifier classifier) {
         received.incrementAndGet();
         if (!EXPECTED_TYPE.equals(message.type())) {
             log.error("⚠ ROUTING ERROR — queue '{}' received unexpected type '{}': {}",
                     queue, message.type(), message.content());
             return;
         }
-        log.info("[{}] received id={} type={} content=\"{}\"",
-                queue, message.id(), message.type(), message.content());
+        String classification = classifier.classify(message.content());
+        log.info("[{}] received id={} type={} classification={} content=\"{}\"",
+                queue, message.id(), message.type(), classification, message.content());
     }
 }
