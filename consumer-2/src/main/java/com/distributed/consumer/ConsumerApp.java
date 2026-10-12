@@ -14,15 +14,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Consumer 2 — main entry point (task 7: support request classification with
- * Smile).
+ * Consumer 2 — main entry point (tasks 7–8: Smile support classification with
+ * manual ACK and dead-letter routing).
  *
  * <p>Consumes from {@code support.queue}, classifies every support request as
  * {@code access_problem}, {@code performance_problem} or
  * {@code connection_problem} with the embedded Smile model
  * ({@link SupportRequestClassifier}) and prints the result to the console.
- * Messages whose {@code type} is not a support request are flagged as a
- * routing error.</p>
+ * Acknowledgement is <b>manual</b>: the message is ACKed only after
+ * successful processing; if parsing or classification fails it is NACKed
+ * without requeue, which routes it to the {@code support.dlq} dead-letter
+ * queue.</p>
  */
 public final class ConsumerApp {
 
@@ -86,16 +88,23 @@ public final class ConsumerApp {
             log.info("Connected to RabbitMQ — consuming queue '{}'", config.queue());
 
             DeliverCallback callback = (tag, delivery) -> {
+                long deliveryTag = delivery.getEnvelope().getDeliveryTag();
                 try {
                     Message message = mapper.readValue(delivery.getBody(), Message.class);
                     handle(message, config.queue(), received, classifier);
-                } catch (Exception e) {
-                    log.error("Failed to process message: {}", e.getMessage());
+                } catch (Exception processingError) {
+                    // Manual NACK without requeue → the broker dead-letters the
+                    // message to the DLQ declared in rabbitmq/definitions.json.
+                    log.error("⚠ PROCESSING ERROR — nacking to DLQ '{}': {}",
+                            config.dlq(), processingError.getMessage());
+                    channel.basicNack(deliveryTag, false, false);
+                    return;
                 }
+                // Manual ACK: only after successful processing.
+                channel.basicAck(deliveryTag, false);
             };
 
-            // autoAck for now — manual ACK + DLQ handling arrives in task 8.
-            channel.basicConsume(config.queue(), true, callback, tag -> { });
+            channel.basicConsume(config.queue(), false, callback, tag -> { });
 
             // Periodic throughput report; if the broker connection dies for
             // good (recovery failed), exit so the outer loop reconnects.
