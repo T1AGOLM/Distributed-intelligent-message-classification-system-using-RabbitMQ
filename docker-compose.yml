@@ -1,0 +1,98 @@
+# =============================================================================
+# docker-compose.yml — task 3
+#
+# Orchestrates the 4 containers of the Distributed Intelligent Message
+# Classification System on a single shared Docker network ("message-net"):
+#
+#   generator  ──publishes──►  rabbitmq (Topic Exchange)  ──►  consumer-1
+#                                                              consumer-2
+#
+# Service configuration (hosts, exchange, routing keys, queues, rate) is passed
+# via environment variables, as required by the assignment.
+# =============================================================================
+
+services:
+
+  # --- RabbitMQ broker (topology from task 2 mounted below) -------------------
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"       # AMQP
+      - "15672:15672"     # management UI → http://localhost:15672 (guest/guest)
+    volumes:
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - message-net
+    restart: unless-stopped
+
+  # --- Message generator (≥ 5 messages/second) --------------------------------
+  generator:
+    build: ./generator
+    container_name: generator
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_EXCHANGE: messages.topic
+      RABBITMQ_ROUTING_KEY_REVIEW: review.product
+      RABBITMQ_ROUTING_KEY_SUPPORT: support.request
+      RABBITMQ_MESSAGE_RATE: "5"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - message-net
+    restart: unless-stopped
+
+  # --- Consumer 1: sentiment analysis (positive/negative/neutral) -------------
+  consumer-1:
+    build: ./consumer-1
+    container_name: consumer-1
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_QUEUE: review.queue
+      RABBITMQ_DLQ: review.dlq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - message-net
+    restart: unless-stopped
+
+  # --- Consumer 2: support request classification -----------------------------
+  consumer-2:
+    build: ./consumer-2
+    container_name: consumer-2
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_QUEUE: support.queue
+      RABBITMQ_DLQ: support.dlq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - message-net
+    restart: unless-stopped
+
+# --- Shared network: every service runs on the same Docker network ------------
+networks:
+  message-net:
+    name: message-net
+    driver: bridge
