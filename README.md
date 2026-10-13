@@ -180,6 +180,20 @@ Generator ──► Topic Exchange ──┬──► review.queue   ──► C
 
 ---
 
+## 📽 Demonstration
+
+The system was executed end-to-end and the following was verified:
+
+- **Generator**: publishes ≥5 messages/second (produces ~50 messages in the capture window), alternating product reviews (`review.product`) and support requests (`support.request`).
+- **RabbitMQ routing**: messages reach the correct queue for each consumer, confirmed by `rabbitmqctl list_bindings` (exchange `messages.topic` → `review.queue` / `support.queue`).
+- **AI classifications**: Consumer 1 classifies reviews as positive/negative/neutral and Consumer 2 classifies support requests as access/performance/connection, each accompanied by a model confidence score.
+- **Queue growth**: consumers process slower than the arrival rate (15 ms/msg for Consumer 1, 50 ms/msg for Consumer 2), so queue depth is visible to rise in the RabbitMQ management UI (http://localhost:15672, guest/guest).
+- **Reliability**: on a processing error the consumer NACKs without requeue, routing the message to the corresponding Dead Letter Queue (review.dlq / support.dlq).
+
+Each consumer prints a periodic report with the number of messages received, the consumption rate, average processing time per message, and estimated queue depth.
+
+---
+
 ## 📄 License
 
 This project is licensed under the terms of the [LICENSE](LICENSE) file.
