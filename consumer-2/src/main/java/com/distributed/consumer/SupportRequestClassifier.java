@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Embedded support-request classification AI (assignment task 7).
+ * Embedded support-request classification AI (assignment tasks 7, 8 and 9).
  *
  * <p>Pipeline: a labeled support corpus is loaded from
  * {@code support-corpus.txt} (classpath), texts are converted to bag-of-words
@@ -24,6 +24,10 @@ import java.util.Set;
  * regression model trained with <b>Smile</b> classifies every vector into one
  * of three classes: {@code access_problem}, {@code performance_problem} or
  * {@code connection_problem}.</p>
+ *
+ * <p>Classification results carry a confidence score (the model's predicted
+ * probability mass for the top class) so the system can surface how certain the
+ * embedded AI is about each decision.</p>
  *
  * <p>The model is trained once at startup — no external service or network
  * call is involved at runtime.</p>
@@ -50,6 +54,9 @@ public final class SupportRequestClassifier {
 
     private final Map<String, Integer> vocabulary;
     private final LogisticRegression.Multinomial model;
+
+    /** Result of classifying one support request: label + model confidence. */
+    public record ClassificationResult(String label, double confidence) {}
 
     private SupportRequestClassifier(Map<String, Integer> vocabulary,
                                      LogisticRegression.Multinomial model) {
@@ -93,8 +100,11 @@ public final class SupportRequestClassifier {
      * Classifies a free-text support request as {@code access_problem},
      * {@code performance_problem} or {@code connection_problem}.
      */
-    public String classify(String text) {
-        return LABELS[model.predict(vectorize(vocabulary, text))];
+    public ClassificationResult classify(String text) {
+        double[] vector = vectorize(vocabulary, text);
+        double[] probs = new double[LABELS.length];
+        int top = model.predict(vector, probs);
+        return new ClassificationResult(LABELS[top], probs[top]);
     }
 
     // --- helpers -------------------------------------------------------------

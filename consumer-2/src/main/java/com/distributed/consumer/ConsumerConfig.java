@@ -5,6 +5,10 @@ package com.distributed.consumer;
  *
  * <p>All values have sensible defaults so the service also runs outside
  * Docker, e.g. directly with {@code java -jar app.jar}.</p>
+ *
+ * <p>Processing delay (milliseconds per message) is used by the consumer to
+ * run slower than the generator, so queue growth becomes visible in the
+ * RabbitMQ management UI (assignment task 9).</p>
  */
 public record ConsumerConfig(
         String host,
@@ -12,7 +16,8 @@ public record ConsumerConfig(
         String user,
         String password,
         String queue,
-        String dlq) {
+        String dlq,
+        long processingDelayMs) {
 
     /** Builds the configuration from the process environment. */
     public static ConsumerConfig fromEnv() {
@@ -22,7 +27,8 @@ public record ConsumerConfig(
                 env("RABBITMQ_USER", "guest"),
                 env("RABBITMQ_PASSWORD", "guest"),
                 env("RABBITMQ_QUEUE", "support.queue"),
-                env("RABBITMQ_DLQ", "support.dlq"));
+                env("RABBITMQ_DLQ", "support.dlq"),
+                longEnv("RABBITMQ_PROCESSING_DELAY_MS", 50L));
     }
 
     private static String env(String key, String fallback) {
@@ -37,6 +43,18 @@ public record ConsumerConfig(
         }
         try {
             return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private static long longEnv(String key, long fallback) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Long.parseLong(value.trim());
         } catch (NumberFormatException e) {
             return fallback;
         }

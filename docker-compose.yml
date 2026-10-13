@@ -48,6 +48,11 @@ services:
       RABBITMQ_ROUTING_KEY_REVIEW: review.product
       RABBITMQ_ROUTING_KEY_SUPPORT: support.request
       RABBITMQ_MESSAGE_RATE: "5"
+      # Slower-than-production processing delay (ms/SQS) so queue growth is visible;
+      # defaults: consumer-1 = 15 ms, consumer-2 = 50 ms — both slower than
+      # the producer's pace. Bulkhead boundaries are provided by direct
+      # in-memory work queuing so the consumer does not drop messages.
+      RABBITMQ_PROCESSING_DELAY_MS: "15"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -84,6 +89,7 @@ services:
       RABBITMQ_PASSWORD: guest
       RABBITMQ_QUEUE: support.queue
       RABBITMQ_DLQ: support.dlq
+      RABBITMQ_PROCESSING_DELAY_MS: "50"
     depends_on:
       rabbitmq:
         condition: service_healthy

@@ -65,9 +65,10 @@ The system is composed of **4 containers** connected to the same Docker network,
 2. Each message carries a **unique ID**, **generation timestamp**, **type** and **content**.
 3. Messages are published to a **Topic Exchange** with the routing key `review.product` or `support.request`.
 4. The exchange forwards each message to the queue of the corresponding consumer.
-5. Each consumer processes messages **intentionally slower than the arrival rate**, so the queue growth can be observed in the RabbitMQ management UI.
-6. Classification results (`positive / negative / neutral` or `access / performance / connection`) are displayed in each consumer's console.
-7. Consumption uses **manual ACK**: a message is only acknowledged after successful processing. If processing fails, the message is routed to a **Dead Letter Queue (DLQ)** instead of being discarded.
+5. Each consumer processes messages **intentionally slower than the arrival rate** (configured per consumer by `RABBITMQ_PROCESSING_DELAY_MS`: 15 ms for Consumer 1, 50 ms for Consumer 2). This is slower than the producer's pace, so the queue growth can be **observed in the RabbitMQ management UI**.
+6. Each classification result carries the model's **confidence** (the predicted probability of the top class), printed in the consumer's console.
+7. Classification results (`positive / negative / neutral` or `access / performance / connection`) are displayed in each consumer's console.
+8. Consumption uses **manual ACK**: a message is only acknowledged after successful processing. If processing fails, the message is routed to a **Dead Letter Queue (DLQ)** instead of being discarded.
 
 ---
 
@@ -103,7 +104,9 @@ docker compose up --build
 # 3. Open the RabbitMQ management UI (default credentials: guest/guest)
 #    http://localhost:15672
 
-# 4. Watch the classification results
+# 4. Watch the classification results (each line now includes the model
+#    confidence, and the consumers print a periodic report with the estimated
+#    queue depth and average processing time per message)
 docker compose logs -f consumer-1   # sentiment analysis
 docker compose logs -f consumer-2   # support request classification
 
@@ -151,7 +154,8 @@ Generator ──► Topic Exchange ──┬──► review.queue   ──► C
 
 - **Manual ACK** — messages are acknowledged only after successful processing, preventing accidental message loss.
 - **Dead Letter Queue (DLQ)** — messages that raise processing errors are redirected to a DLQ instead of being dropped, allowing later inspection and reprocessing.
-- **Slower consumers** — processing latency is deliberately higher than the production rate so queue buildup is visible in the RabbitMQ management UI.
+- **Slower consumers** (task 9) — processing latency is deliberately higher than the production rate so queue buildup is visible in the RabbitMQ management UI. Each consumer runs slower than the generator's pace by a configurable processing delay (default 15 ms for Consumer 1, 50 ms for Consumer 2), both slower than the ~5 msg/s arrival rate.
+- **Confidence scores** — each classification result includes the model's predicted probability for the chosen class, so the system surfaces how certain the embedded AI is about each decision.
 - **Unique message identity** — every message carries an ID, timestamp, type and content for full traceability.
 
 ---
