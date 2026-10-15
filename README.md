@@ -55,7 +55,10 @@ The system is composed of **4 containers** connected to the same Docker network,
 | **Message Generator** | Continuously produces at least 5 messages/second and publishes them to RabbitMQ, tagging each message with its type. |
 | **RabbitMQ** | Routes messages through a Topic Exchange using the routing keys `review.product` and `support.request`. One queue per consumer, plus a Dead Letter Queue for failed messages. Management UI enabled. |
 | **Consumer 1 – Sentiment Analysis** | Consumes product reviews and classifies each one as **positive**, **negative** or **neutral** using an embedded AI model. Results are printed to the console. |
-| **Consumer 2 – Support Request Classification** | Consumes support requests and classifies each one as **access problem**, **performance problem** or **connection problem** using an embedded AI model. Results are printed to the console. |
+| **Consumer 2 – Support Request Classification** | Consumes support requests and classifies each one as **accessFatal error!
+
+
+Crash in runnable thread OnlineAsyncTaskThreadSteam DefaultInstance problem**, **performance problem** or **connection problem** using an embedded AI model. Results are printed to the console. |
 
 ---
 
