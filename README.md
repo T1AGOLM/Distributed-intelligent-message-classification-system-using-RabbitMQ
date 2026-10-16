@@ -55,7 +55,10 @@ The system is composed of **4 containers** connected to the same Docker network,
 | **Message Generator** | Continuously produces at least 5 messages/second and publishes them to RabbitMQ, tagging each message with its type. |
 | **RabbitMQ** | Routes messages through a Topic Exchange using the routing keys `review.product` and `support.request`. One queue per consumer, plus a Dead Letter Queue for failed messages. Management UI enabled. |
 | **Consumer 1 – Sentiment Analysis** | Consumes product reviews and classifies each one as **positive**, **negative** or **neutral** using an embedded AI model. Results are printed to the console. |
-| **Consumer 2 – Support Request Classification** | Consumes support requests and classifies each one as **access problem**, **performance problem** or **connection problem** using an embedded AI model. Results are printed to the console. |
+| **Consumer 2 – Support Request Classification** | Consumes support requests and classifies each one as **accessFatal error!
+
+
+Crash in runnable thread OnlineAsyncTaskThreadSteam DefaultInstance problem**, **performance problem** or **connection problem** using an embedded AI model. Results are printed to the console. |
 
 ---
 
@@ -102,7 +105,7 @@ cd <repository-name>
 docker compose up --build
 
 # 3. Open the RabbitMQ management UI (default credentials: guest/guest)
-#    http://localhost:15672
+   http://localhost:15672
 
 # 4. Watch the classification results (each line now includes the model
 #    confidence, and the consumers print a periodic report with the estimated
@@ -180,17 +183,17 @@ Generator ──► Topic Exchange ──┬──► review.queue   ──► C
 
 ---
 
-## 📽 Demonstration
+## 📽 How to demonstrate (evidence to collect)
 
-The system was executed end-to-end and the following was verified:
+The five points below are the items the professor asks to demonstrate. For each one, run the system (`docker compose up --build`), then record the evidence in `docs/` (screenshots, console logs, `rabbitmqctl` output).
 
-- **Generator**: publishes ≥5 messages/second (produces ~50 messages in the capture window), alternating product reviews (`review.product`) and support requests (`support.request`).
-- **RabbitMQ routing**: messages reach the correct queue for each consumer, confirmed by `rabbitmqctl list_bindings` (exchange `messages.topic` → `review.queue` / `support.queue`).
-- **AI classifications**: Consumer 1 classifies reviews as positive/negative/neutral and Consumer 2 classifies support requests as access/performance/connection, each accompanied by a model confidence score.
-- **Queue growth**: consumers process slower than the arrival rate (15 ms/msg for Consumer 1, 50 ms/msg for Consumer 2), so queue depth is visible to rise in the RabbitMQ management UI (http://localhost:15672, guest/guest).
-- **Reliability**: on a processing error the consumer NACKs without requeue, routing the message to the corresponding Dead Letter Queue (review.dlq / support.dlq).
-
-Each consumer prints a periodic report with the number of messages received, the consumption rate, average processing time per message, and estimated queue depth.
+| # | What to demonstrate | How to prove it | Evidence to save |
+|---|---------------------|-----------------|------------------|
+| 1 | **Continuous message generation** | Generator publishes ≥5 messages/second, alternating `review.product` and `support.request`. Each message has `id`, `timestamp`, `type`, `content`. | `docker compose logs -f generator` showing ≥5 msg/s in a 10 s window (throughput report); ~50 published lines. |
+| 2 | **Correct routing through the Topic Exchange** | `messages.topic` routes by routing key: `review.product` → `review.queue` → Consumer 1; `support.request` → `support.queue` → Consumer 2. No cross-traffic. | `docker compose exec rabbitmq rabbitmqctl list_bindings --silent` (exchange → queues with the two routing keys); one log line per message in the correct consumer matching `type`. |
+| 3 | **Classification by the two IAs** | Consumer 1 labels reviews as `positive`/`negative`/`neutral`; Consumer 2 labels support requests as `access_problem`/`performance_problem`/`connection_problem`; every result carries a confidence score. | Two console logs (consumer-1, consumer-2) with `sentiment=... confidence=...` and `classification=... confidence=...` on each message. |
+| 4 | **Queue growth in the RabbitMQ UI** | Consumers are intentionally slower than the arrival rate (15 ms/msg Consumer 1, 50 ms/msg Consumer 2), so queue depth grows in the management UI. | Screenshots of `http://localhost:15672` → Queues/Overview while the queue depth rises; periodic reports from the consumers (`received N`, `consumption rate`, `average processing time`, `estimated queue depth`). |
+| 5 | **Error handling through the DLQ** | A message that fails processing is NACKed with `requeue=false`, so it lands in `review.dlq` / `support.dlq` (via `messages.dlx`) instead of being discarded. | Consumer log showing `⚠ PROCESSING ERROR — nacking to DLQ ...`; `docker compose exec rabbitmq rabbitmqctl list_queues name messages messages_ready messages_unacknowledged` showing messages in the DLQ and zero unacknowledged in the normal queue. |
 
 ---
 
